@@ -121,7 +121,8 @@ boot_verity() {
 #default launch config for sev uses virto as device driver
 #we need this module to detect the disk supplied with "-hda"
 modprobe virtio_scsi
-
+modprobe vfio-pci
+modprobe ecdh
 if [ $BOOT = "normal" ]; then
     boot_normal
 elif [ $BOOT = "encrypted" ]; then

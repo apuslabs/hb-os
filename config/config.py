@@ -7,9 +7,9 @@ config = {
     "ao_branch": "tillathehun0/cu-experimental",
 
     # Debugging and KVM.
-    "debug": "0",
+    "debug": "1",
     "enable_kvm": "1",
-    
+    "gpu" : "1",
     # Image Files.
     "base_image": "base.qcow2",
     "guest_image": "guest.qcow2",
@@ -18,13 +18,13 @@ config = {
     "cmdline": "console=ttyS0 earlyprintk=serial root=/dev/sda",
     
     # QEMU Parameters.
-    "memory": "204800",
+    "memory": "163840",
     "hb_port": "80",
     "qemu_port": "4444",
     
     # Guest Definition.
-    "host_cpu_family": "Milan",
-    "vcpu_count": 32,
+    "host_cpu_family": "Genoa",
+    "vcpu_count": 12,
     "guest_features": "0x1",
     "platform_info": "0x3",
     "guest_policy": "0x30000",

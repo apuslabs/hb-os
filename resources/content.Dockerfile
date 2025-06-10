@@ -16,8 +16,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     sudo \
     curl \
     ca-certificates \
+    wget \
     && apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+# RUN wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb && \
+#     dpkg -i cuda-keyring_1.1-1_all.deb && \
+#     apt-get update && \
+#     apt-get -y install cuda-toolkit-12-4 && \
+#     apt install -y nvidia-driver-550-server-open && \
+#     apt install -y nvidia-utils-550-server && \
+#     rm cuda-keyring_1.1-1_all.deb
 
 # Build and Install Erlang/OTP
 RUN git clone https://github.com/erlang/otp.git && \
