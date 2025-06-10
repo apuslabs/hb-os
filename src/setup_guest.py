@@ -317,6 +317,39 @@ def prepare_verity_fs():
 
 # ----------------- Main Script ----------------- #
 
+# 在安装包之前挂载必要的文件系统
+def mount_virtual_filesystems(dst_folder):
+    """在chroot环境中挂载虚拟文件系统"""
+    mount_points = [
+        ("/proc", "proc"),
+        ("/sys", "sysfs"),
+        ("/dev", "devtmpfs"),
+        ("/dev/pts", "devpts")
+    ]
+    
+    for mount_point, fs_type in mount_points:
+        target = os.path.join(dst_folder, mount_point.lstrip('/'))
+        os.makedirs(target, exist_ok=True)
+        try:
+            subprocess.run(["sudo", 
+                "mount", "-t", fs_type, fs_type, target
+            ], check=True, capture_output=True, text=True)
+            print(f"Mounted {fs_type} at {target}")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to mount {fs_type}: {e}")
+
+def unmount_virtual_filesystems(dst_folder):
+    """卸载虚拟文件系统"""
+    mount_points = ["/dev/pts", "/dev", "/sys", "/proc"]
+    
+    for mount_point in mount_points:
+        target = os.path.join(dst_folder, mount_point.lstrip('/'))
+        try:
+            subprocess.run(["sudo", "umount", target], check=True, capture_output=True, text=True)
+            print(f"Unmounted {target}")
+        except subprocess.CalledProcessError as e:
+            print(f"Failed to unmount {target}: {e}")
+
 def setup_guest(src_image, build_dir, out_image,
                 out_hash_tree, out_root_hash,
                 debug, non_interactive=False, device=None):
@@ -397,16 +430,21 @@ def setup_guest(src_image, build_dir, out_image,
     print("Enabling CU service..")
     subprocess.run(["sudo", "chroot", DST_FOLDER, "systemctl", "enable", "cu.service"], check=True)
 
-# wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
-    print("Installing NVIDIA drivers...")
-    subprocess.run(["sudo", "chroot", DST_FOLDER, "wget", 
-                "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.0-1_all.deb"], 
-                check=True)
-    subprocess.run(["sudo", "chroot", DST_FOLDER, "dpkg", "-i", "cuda-keyring_1.0-1_all.deb"], check=True)
-    subprocess.run(["sudo", "chroot", DST_FOLDER, "apt-get", "update"], check=True)
-    subprocess.run(["sudo", "chroot", DST_FOLDER, "apt-get", "install", "-y", 
-                "nvidia-driver-550-server", "nvidia-utils-550-server", "cuda-toolkit-12-4"], check=True)
-    subprocess.run(["sudo", "chroot", DST_FOLDER, "rm", "cuda-keyring_1.0-1_all.deb"], check=True)
+    # 安装 NVIDIA 驱动和 CUDA 工具包
+    print("Installing NVIDIA drivers and CUDA toolkit..")
+    try:
+        mount_virtual_filesystems(DST_FOLDER)
+        # 复制预下载的包到目标系统
+        nvidia_src = os.path.join(BUILD_DIR, "content", "nvidia-driver")
+        nvidia_dst = os.path.join(DST_FOLDER, "root")
+        subprocess.run(["sudo", "rsync", "-axHAWXS", "--numeric-ids", "--info=progress2",
+                    nvidia_src, nvidia_dst], check=True)
+        subprocess.run(["sudo", "chroot", DST_FOLDER, "sh", "-c", 
+                    f"dpkg -i /root/nvidia-driver/*.deb"], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error installing NVIDIA drivers: {e}")
+    finally:
+        unmount_virtual_filesystems(DST_FOLDER)
 
     print("Preparing output filesystem for dm-verity..")
     prepare_verity_fs()
