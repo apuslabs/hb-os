@@ -15,6 +15,13 @@ CPU_MODEL="EPYC-v4"
 MONITOR_PATH=monitor
 QEMU_CONSOLE_LOG=$(pwd)/stdout.log
 CERTS_PATH=
+# GPU passthrough configuration
+NVIDIA_GPU=$(lspci -d 10de: | awk '/NVIDIA/{print $1}')
+if [ -n "$NVIDIA_GPU" ]; then
+    NVIDIA_PASSTHROUGH=$(lspci -n -s $NVIDIA_GPU | awk -F: '{print $4}' | awk '{print $1}')
+    echo "NVIDIA GPU detected at $NVIDIA_GPU"
+    echo "10de $NVIDIA_PASSTHROUGH > /sys/bus/pci/drivers/vfio-pci/new_id"
+fi
 
 # linked to cli flag
 ENABLE_ID_BLOCK=
@@ -540,7 +547,11 @@ if [ -n "$DATA_DISK" ]; then
     add_opts "-device virtio-scsi-pci,id=scsi_data,disable-legacy=on,iommu_platform=true"
     add_opts "-device scsi-hd,drive=dataDisk"
 fi
-
+# Add NVIDIA GPU device if detected
+if [ -n "$NVIDIA_GPU" ]; then
+        add_opts "-device pcie-root-port,id=pci.1,bus=pcie.0"
+        add_opts "-device vfio-pci,host=$NVIDIA_GPU,bus=pci.1"
+fi
 # if the TOML_CONFIG file is present and DEBUG = 0, then run QEMU as a background service
 if [ -n "$TOML_CONFIG" ]; then
     echo "Launching QEMU as a background service..."
