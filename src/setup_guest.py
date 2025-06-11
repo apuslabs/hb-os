@@ -319,28 +319,48 @@ def prepare_verity_fs():
 
 # 在安装包之前挂载必要的文件系统
 def mount_virtual_filesystems(dst_folder):
-    """在chroot环境中挂载虚拟文件系统"""
+    """在chroot环境中挂载虚拟文件系统和网络相关目录"""
+    # 创建必要的目录
+    resolve_dir = os.path.join(dst_folder, "run/systemd/resolve")
+    subprocess.run(["sudo", "mkdir", "-p", resolve_dir], check=True)
+    
+    # 复制DNS解析配置
+    try:
+        subprocess.run(["sudo", "cp", "/run/systemd/resolve/stub-resolv.conf", resolve_dir], 
+                      check=True, capture_output=True, text=True)
+        print("Copied DNS resolver configuration")
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to copy DNS config: {e}")
+    
+    # 挂载点配置：(挂载点, 文件系统类型, 是否bind挂载)
     mount_points = [
-        ("/proc", "proc"),
-        ("/sys", "sysfs"),
-        ("/dev", "devtmpfs"),
-        ("/dev/pts", "devpts")
+        ("/dev", "devtmpfs", True),
+        ("/dev/pts", "devpts", True), 
+        ("/sys", "sysfs", False),
+        ("/proc", "proc", False),
+        ("/sys/class/net", "sysfs", True),
+        ("/dev/net", "devtmpfs", True)
     ]
     
-    for mount_point, fs_type in mount_points:
+    for mount_point, fs_type, is_bind in mount_points:
         target = os.path.join(dst_folder, mount_point.lstrip('/'))
         os.makedirs(target, exist_ok=True)
         try:
-            subprocess.run(["sudo", 
-                "mount", "-t", fs_type, fs_type, target
-            ], check=True, capture_output=True, text=True)
-            print(f"Mounted {fs_type} at {target}")
+            if is_bind:
+                subprocess.run(["sudo", "mount", "--bind", mount_point, target], 
+                              check=True, capture_output=True, text=True)
+                print(f"Bind mounted {mount_point} at {target}")
+            else:
+                subprocess.run(["sudo", "mount", "-t", fs_type, fs_type, target], 
+                              check=True, capture_output=True, text=True)
+                print(f"Mounted {fs_type} at {target}")
         except subprocess.CalledProcessError as e:
-            print(f"Failed to mount {fs_type}: {e}")
+            print(f"Failed to mount {mount_point}: {e}")
 
 def unmount_virtual_filesystems(dst_folder):
-    """卸载虚拟文件系统"""
-    mount_points = ["/dev/pts", "/dev", "/sys", "/proc"]
+    """卸载虚拟文件系统和网络相关目录"""
+    # 按相反顺序卸载
+    mount_points = ["/sys/class/net", "/dev/pts", "/dev/net", "/dev", "/sys", "/proc"]
     
     for mount_point in mount_points:
         target = os.path.join(dst_folder, mount_point.lstrip('/'))
@@ -434,13 +454,28 @@ def setup_guest(src_image, build_dir, out_image,
     print("Installing NVIDIA drivers and CUDA toolkit..")
     try:
         mount_virtual_filesystems(DST_FOLDER)
-        # 复制预下载的包到目标系统
-        nvidia_src = os.path.join(BUILD_DIR, "content", "nvidia-driver")
-        nvidia_dst = os.path.join(DST_FOLDER, "root")
-        subprocess.run(["sudo", "rsync", "-axHAWXS", "--numeric-ids", "--info=progress2",
-                    nvidia_src, nvidia_dst], check=True)
-        subprocess.run(["sudo", "chroot", DST_FOLDER, "sh", "-c", 
-                    f"dpkg -i /root/nvidia-driver/*.deb"], check=True)
+        
+        # 下载并安装CUDA keyring
+        print("Downloading CUDA keyring...")
+        subprocess.run(["sudo", "chroot", DST_FOLDER, "wget", 
+                       "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb"], 
+                      check=True)
+        subprocess.run(["sudo", "chroot", DST_FOLDER, "dpkg", "-i", "cuda-keyring_1.1-1_all.deb"], 
+                      check=True)
+        
+        # 更新包列表
+        print("Updating package lists...")
+        subprocess.run(["sudo", "chroot", DST_FOLDER, "apt-get", "update"], check=True)
+        
+        # 安装NVIDIA驱动和CUDA工具包
+        print("Installing NVIDIA drivers and CUDA toolkit...")
+        env = os.environ.copy()
+        env["DEBIAN_FRONTEND"] = "noninteractive"
+        subprocess.run(["sudo", "chroot", DST_FOLDER, "env", "DEBIAN_FRONTEND=noninteractive", 
+                       "apt-get", "install", "-y", "cuda-toolkit-12-4", 
+                       "nvidia-driver-550-server-open", "nvidia-utils-550-server"], 
+                      check=True, env=env)
+        
     except subprocess.CalledProcessError as e:
         print(f"Error installing NVIDIA drivers: {e}")
     finally:

@@ -48,14 +48,6 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && \
 # Set up build directories
 RUN mkdir -p /build /release
 
-RUN mkdir -p /release/nvidia-driver && cd /release/nvidia-driver && \
-    wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb && \
-    dpkg -i cuda-keyring_1.1-1_all.deb && \
-    apt-get update && \
-    apt-get install --download-only --reinstall -y cuda-toolkit-12-4 nvidia-driver-550-server-open nvidia-utils-550-server && \
-    cp /var/cache/apt/archives/*.deb . && \
-    rm cuda-keyring_1.1-1_all.deb
-
 # Clone the HyperBEAM repository
 RUN git clone https://github.com/permaweb/HyperBEAM.git /build/HyperBEAM && \
     cd /build/HyperBEAM && \
