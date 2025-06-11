@@ -50,9 +50,18 @@ for x in $(cat /proc/cmdline); do
 	esac
 done
 
+# Setup LKCA configuration
+setup_lkca() {
+    echo "Setting up LKCA configuration..."
+    mkdir -p $MNT_DIR/etc/modprobe.d
+    echo "install nvidia /sbin/modprobe ecdsa_generic ecdh; /sbin/modprobe --ignore-install nvidia" > $MNT_DIR/etc/modprobe.d/nvidia-lkca.conf
+    chmod 644 $MNT_DIR/etc/modprobe.d/nvidia-lkca.conf
+}
+
 boot_normal() {
     echo "Booting normal filesystem.."
     mount $ROOT $MNT_DIR
+    setup_lkca
 }
 
 boot_encrypted() {
@@ -83,6 +92,7 @@ boot_encrypted() {
     # mount /dev/mapper/ubuntu--vg-ubuntu--lv $MNT_DIR
 
     mount /dev/mapper/"$ROOT_FS_CRYPTDEV" $MNT_DIR
+    setup_lkca
 }
 
 boot_verity() {
@@ -102,25 +112,26 @@ boot_verity() {
     mount -t tmpfs -o size=8192M tmpfs $MNT_DIR/root
     # mount -t tmpfs -o size=8192M tmpfs $MNT_DIR/home
     mount -t tmpfs -o size=1024M tmpfs $MNT_DIR/etc
-    mount -t tmpfs -o size=2048M tmpfs $MNT_DIR/var
-    mount -t tmpfs -o size=1024M tmpfs $MNT_DIR/tmp
-
+    mount -t tmpfs -o size=4096M tmpfs $MNT_DIR/var
+    mount -t tmpfs -o size=2048M tmpfs $MNT_DIR/tmp
     # copy home, etc, var contents to RAM fs
     rsync -paxHAWXS $MNT_DIR/root_ro/ $MNT_DIR/root/
     rsync -paxHAWXS $MNT_DIR/etc_ro/ $MNT_DIR/etc/
     rsync -paxHAWXS $MNT_DIR/var_ro/ $MNT_DIR/var/
-
     # generate new SSH key for SSH server
     ssh-keygen -t ecdsa -f $MNT_DIR/etc/ssh/ssh_host_ecdsa_key -N "" >/dev/null 2>&1
 
     # generate attestation report with SSH fingerprint as user data
     FINGERPRINT=`ssh-keygen -lf $MNT_DIR/etc/ssh/ssh_host_ecdsa_key.pub | awk '{ print $2 }' | cut -d ":" -f 2`
     /bin/get_report --report-data $FINGERPRINT --out $MNT_DIR/etc/report.json
+    
+    setup_lkca
 }
 
 #default launch config for sev uses virto as device driver
 #we need this module to detect the disk supplied with "-hda"
 modprobe virtio_scsi
+#for passing through gpu driver
 modprobe vfio-pci
 modprobe ecdh
 if [ $BOOT = "normal" ]; then
