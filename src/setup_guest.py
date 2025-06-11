@@ -397,16 +397,6 @@ def setup_guest(src_image, build_dir, out_image,
     print("Enabling CU service..")
     subprocess.run(["sudo", "chroot", DST_FOLDER, "systemctl", "enable", "cu.service"], check=True)
 
-# wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb
-    print("Installing NVIDIA drivers...")
-    subprocess.run(["sudo", "chroot", DST_FOLDER, "wget", 
-                "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.0-1_all.deb"], 
-                check=True)
-    subprocess.run(["sudo", "chroot", DST_FOLDER, "dpkg", "-i", "cuda-keyring_1.0-1_all.deb"], check=True)
-    subprocess.run(["sudo", "chroot", DST_FOLDER, "apt-get", "update"], check=True)
-    subprocess.run(["sudo", "chroot", DST_FOLDER, "apt-get", "install", "-y", 
-                "nvidia-driver-550-server", "nvidia-utils-550-server", "cuda-toolkit-12-4"], check=True)
-    subprocess.run(["sudo", "chroot", DST_FOLDER, "rm", "cuda-keyring_1.0-1_all.deb"], check=True)
 
     print("Preparing output filesystem for dm-verity..")
     prepare_verity_fs()
