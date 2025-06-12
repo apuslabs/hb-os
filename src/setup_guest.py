@@ -404,6 +404,9 @@ def setup_guest(src_image, build_dir, out_image,
     print("Unmounting images..")
     subprocess.run(["sudo", "umount", "-q", SRC_FOLDER], check=True)
     subprocess.run(["sudo", "umount", "-q", DST_FOLDER], check=True)
+    
+    subprocess.run(["sudo", "sync"], check=True)
+    time.sleep(2)
 
     print("Computing hash tree..")
     cmd = "sudo veritysetup format {} {} | grep Root | cut -f2".format(DST_DEVICE, HASH_TREE)

@@ -51,17 +51,17 @@ for x in $(cat /proc/cmdline); do
 done
 
 # Setup LKCA configuration
-setup_lkca() {
-    echo "Setting up LKCA configuration..."
-    mkdir -p $MNT_DIR/etc/modprobe.d
-    echo "install nvidia /sbin/modprobe ecdsa_generic ecdh; /sbin/modprobe --ignore-install nvidia" > $MNT_DIR/etc/modprobe.d/nvidia-lkca.conf
-    chmod 644 $MNT_DIR/etc/modprobe.d/nvidia-lkca.conf
-}
+# setup_lkca() {
+#     echo "Setting up LKCA configuration..."
+#     mkdir -p $MNT_DIR/etc/modprobe.d
+#     echo "install nvidia /sbin/modprobe ecdsa_generic ecdh; /sbin/modprobe --ignore-install nvidia" > $MNT_DIR/etc/modprobe.d/nvidia-lkca.conf
+#     chmod 644 $MNT_DIR/etc/modprobe.d/nvidia-lkca.conf
+# }
 
 boot_normal() {
     echo "Booting normal filesystem.."
     mount $ROOT $MNT_DIR
-    setup_lkca
+    # setup_lkca
 }
 
 boot_encrypted() {
@@ -92,7 +92,7 @@ boot_encrypted() {
     # mount /dev/mapper/ubuntu--vg-ubuntu--lv $MNT_DIR
 
     mount /dev/mapper/"$ROOT_FS_CRYPTDEV" $MNT_DIR
-    setup_lkca
+    # setup_lkca
 }
 
 boot_verity() {
@@ -125,7 +125,7 @@ boot_verity() {
     FINGERPRINT=`ssh-keygen -lf $MNT_DIR/etc/ssh/ssh_host_ecdsa_key.pub | awk '{ print $2 }' | cut -d ":" -f 2`
     /bin/get_report --report-data $FINGERPRINT --out $MNT_DIR/etc/report.json
     
-    setup_lkca
+    # setup_lkca
 }
 
 #default launch config for sev uses virto as device driver
@@ -133,6 +133,8 @@ boot_verity() {
 modprobe virtio_scsi
 #for passing through gpu driver
 modprobe vfio-pci
+# Load crypto modules required for NVIDIA LKCA
+modprobe ecdsa_generic
 modprobe ecdh
 if [ $BOOT = "normal" ]; then
     boot_normal

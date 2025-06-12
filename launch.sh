@@ -5,7 +5,7 @@
 #
 HDA=""
 HDB=""
-MEM="2048"
+MEM="64"
 SMP="1"
 CONSOLE="serial"
 USE_VIRTIO="1"
@@ -48,7 +48,7 @@ usage() {
         echo " -bios              the bios to use (default $UEFI_PATH)"
         echo " -hda PATH          hard disk file (default $HDA)"
         echo " -hdb PATH          second hard disk file. Used for cloud-init config blob"
-        echo " -mem MEM           guest memory size in MB (default $MEM)"
+        echo " -mem MEM           guest memory size in GB (default $MEM)"
         echo " -smp NCPUS         number of virtual cpus (default $SMP)"
         echo " -cpu CPU_MODEL     QEMU CPU model/type to use (default $CPU_MODEL)."
         echo "                    You can also specify additional CPU flags, e.g. -cpu $CPU_MODEL,+avx512f,+avx512dq"
@@ -391,9 +391,9 @@ fi
 [ -n "${SMP}" ] && add_opts "-smp ${SMP},maxcpus=255"
 
 # define guest memory
-add_opts "-m ${MEM}M"
+#add_opts "-m ${MEM}M"
 #luca: adding more slots in combination with maxmem allows to hotplug memory later on
-#add_opts "-m ${MEM}M,slots=5,maxmem=$((${MEM} + 8192))M"
+add_opts "-m 64G,slots=2,maxmem=512G"
 
 # don't reboot for SEV-ES guest
 add_opts "-no-reboot"
@@ -466,7 +466,7 @@ if [ ${SEV} = "1" ]; then
         fi
 
         if [ "${SEV_SNP}" = 1 ]; then
-                add_opts "-object memory-backend-memfd,id=ram1,size=${MEM}M,share=true,prealloc=false"
+                add_opts "-object memory-backend-memfd,id=ram1,size=64G,share=true,prealloc=false"
                 add_opts "-machine memory-backend=ram1"
 
                 #base set of options, that we always want to use
@@ -546,6 +546,7 @@ fi
 if [ -n "$NVIDIA_GPU" ]; then
         add_opts "-device pcie-root-port,id=pci.1,bus=pcie.0"
         add_opts "-device vfio-pci,host=$NVIDIA_GPU,bus=pci.1"
+        add_opts "-fw_cfg name=opt/ovmf/X-PciMmio64Mb,string=196608"
 fi
 # if the TOML_CONFIG file is present and DEBUG = 0, then run QEMU as a background service
 if [ -n "$TOML_CONFIG" ]; then
