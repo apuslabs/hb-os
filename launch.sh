@@ -470,9 +470,9 @@ if [ ${SEV} = "1" ]; then
         exit 1
     fi
 
-    if [ "${SEV_SNP}" = 1 ]; then
-        add_opts "-object memory-backend-memfd,id=ram1,size=${MEM}M,share=true,prealloc=false"
-        add_opts "-machine memory-backend=ram1"
+        if [ "${SEV_SNP}" = 1 ]; then
+                add_opts "-object memory-backend-memfd,id=ram1,size=64G,share=true,prealloc=false"
+                add_opts "-machine memory-backend=ram1"
 
         #base set of options, that we always want to use
         #the following if statements might add some more options, depending on config flags
@@ -557,6 +557,7 @@ fi
 if [ -n "$NVIDIA_GPU" ]; then
         add_opts "-device pcie-root-port,id=pci.1,bus=pcie.0"
         add_opts "-device vfio-pci,host=$NVIDIA_GPU,bus=pci.1"
+        add_opts "-fw_cfg name=opt/ovmf/X-PciMmio64Mb,string=196608"
 fi
 # if the TOML_CONFIG file is present and DEBUG = 0, then run QEMU as a background service
 if [ -n "$TOML_CONFIG" ]; then
