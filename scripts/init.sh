@@ -21,7 +21,7 @@ mount -t proc -o nodev,noexec,nosuid proc /proc
 
 # Note that this only becomes /dev on the real filesystem if udev's scripts
 # are used; which they will be, but it's worth pointing out
-mount -t devtmpfs -o nosuid,mode=0755 udev /dev
+mount -t devtmpfs -o nosuid,mode=0777 udev /dev
 mkdir /dev/pts
 mount -t devpts -o noexec,nosuid,gid=5,mode=0620 devpts /dev/pts || true
 
@@ -51,17 +51,17 @@ for x in $(cat /proc/cmdline); do
 done
 
 # Setup LKCA configuration
-# setup_lkca() {
-#     echo "Setting up LKCA configuration..."
-#     mkdir -p $MNT_DIR/etc/modprobe.d
-#     echo "install nvidia /sbin/modprobe ecdsa_generic ecdh; /sbin/modprobe --ignore-install nvidia" > $MNT_DIR/etc/modprobe.d/nvidia-lkca.conf
-#     chmod 644 $MNT_DIR/etc/modprobe.d/nvidia-lkca.conf
-# }
+setup_lkca() {
+    echo "Setting up LKCA configuration..."
+    mkdir -p $MNT_DIR/etc/modprobe.d
+    echo "install nvidia /sbin/modprobe ecdsa_generic ecdh; /sbin/modprobe --ignore-install nvidia" > $MNT_DIR/etc/modprobe.d/nvidia-lkca.conf
+    chmod 644 $MNT_DIR/etc/modprobe.d/nvidia-lkca.conf
+}
 
 boot_normal() {
     echo "Booting normal filesystem.."
     mount $ROOT $MNT_DIR
-    # setup_lkca
+    setup_lkca
 }
 
 boot_encrypted() {
@@ -92,7 +92,7 @@ boot_encrypted() {
     # mount /dev/mapper/ubuntu--vg-ubuntu--lv $MNT_DIR
 
     mount /dev/mapper/"$ROOT_FS_CRYPTDEV" $MNT_DIR
-    # setup_lkca
+    setup_lkca
 }
 
 boot_verity() {
@@ -125,7 +125,7 @@ boot_verity() {
     FINGERPRINT=`ssh-keygen -lf $MNT_DIR/etc/ssh/ssh_host_ecdsa_key.pub | awk '{ print $2 }' | cut -d ":" -f 2`
     /bin/get_report --report-data $FINGERPRINT --out $MNT_DIR/etc/report.json
     
-    # setup_lkca
+    setup_lkca
 }
 
 #default launch config for sev uses virto as device driver
