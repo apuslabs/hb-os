@@ -553,18 +553,7 @@ if [ -n "$NVIDIA_GPU" ]; then
         add_opts "-device vfio-pci,host=$NVIDIA_GPU,bus=pci.1"
         add_opts "-fw_cfg name=opt/ovmf/X-PciMmio64Mb,string=196608"
 fi
-# Add NVIDIA GPU device if detected
-if [ -n "$NVIDIA_GPU" ]; then
-        add_opts "-device pcie-root-port,id=pci.1,bus=pcie.0"
-        add_opts "-device vfio-pci,host=$NVIDIA_GPU,bus=pci.1"
-        add_opts "-fw_cfg name=opt/ovmf/X-PciMmio64Mb,string=196608"
-fi
-# Add NVIDIA GPU device if detected
-if [ -n "$NVIDIA_GPU" ]; then
-        add_opts "-device pcie-root-port,id=pci.1,bus=pcie.0"
-        add_opts "-device vfio-pci,host=$NVIDIA_GPU,bus=pci.1"
-        add_opts "-fw_cfg name=opt/ovmf/X-PciMmio64Mb,string=163840"
-fi
+
 # if the TOML_CONFIG file is present and DEBUG = 0, then run QEMU as a background service
 if [ -n "$TOML_CONFIG" ]; then
     echo "Launching QEMU as a background service..."
