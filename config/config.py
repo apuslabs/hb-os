@@ -18,7 +18,7 @@ config = {
     "cmdline": "console=ttyS0 earlyprintk=serial root=/dev/sda",
     
     # QEMU Parameters.
-    "memory": "163840",
+    "memory": "8192",
     "hb_port": "80",
     "qemu_port": "4444",
     

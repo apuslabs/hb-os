@@ -1,5 +1,5 @@
 # Use Ubuntu 22.04 as the base image
-FROM --platform=linux/amd64 ubuntu:22.04
+FROM ubuntu:22.04
 
 # Set environment variables to avoid interactive prompts during installations
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -77,7 +77,7 @@ COPY ./cu/cu.service /release
 ARG CACHEBUST=1
 
 # Clone the HyperBEAM repository
-RUN git clone --depth=1 --branch <HB_BRANCH> https://github.com/permaweb/HyperBEAM.git /build/HyperBEAM
+RUN git clone --depth=1 --branch main https://github.com/permaweb/HyperBEAM.git /build/HyperBEAM
 
 # Copy the config flat configurations to HyperBEAM Dir before building release.
 COPY ./hyperbeam/config.flat /build/HyperBEAM/config.flat
