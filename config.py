@@ -55,10 +55,10 @@ class BuildConfig:
     ao_branch: str = "tillathehun0/cu-experimental"
     
     # Debug and virtualization
-    debug: bool = False
+    debug: bool = True
     enable_kvm: bool = True
-    enable_tpm: bool = True
-    enable_gpu: bool = False  # Enable GPU support
+    enable_tpm: bool = False
+    enable_gpu: bool = True  # Enable GPU support
     
     # Image names
     base_image: str = "base.qcow2"
